@@ -28,8 +28,8 @@ class BotActivityHandler extends TeamsActivityHandler {
         // Registers an activity event handler for the message event, emitted for every incoming message activity.
         this.onMessage(async (context, next) => {
             TurnContext.removeRecipientMention(context.activity);
-            switch (context.activity.text.trim()) {
-            case 'Choose an order':
+            switch (context.activity.text.trim().toLowerCase()) {
+            case 'choose an order':
                 await this.orderActivityAsync(context);
                 break;
             default:
