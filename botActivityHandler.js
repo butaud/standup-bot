@@ -109,7 +109,7 @@ class BotActivityHandler extends TeamsActivityHandler {
     }
 
     maybeGetRecentRequester(context) {
-        const convKey = context.activity.channelId;
+        const convKey = context.activity.conversation.id;
         if (this.recentOrderings[convKey] && (Date.now() - this.recentOrderings[convKey].timestamp < DEBOUNCE_THRESHOLD_MILLIS)) {
             return this.recentOrderings[convKey].requester;
         }
