@@ -75,7 +75,7 @@ class BotActivityHandler extends TeamsActivityHandler {
         } else {
             const members = await TeamsInfo.getMembers(context);
             const memberNamesInOrder = this.orderMemberNames(members);
-    
+
             replyActivity = MessageFactory.text(`Hi ${ mention.text }, here is a random order:\n\n${memberNamesInOrder.join("\n\n")}`);
         }
         
@@ -94,15 +94,19 @@ class BotActivityHandler extends TeamsActivityHandler {
                 givenNameCount[member] = 1;
             }
         });
+        
         const displayNames = members.map(member => {
             if (!member.givenName) {
                 return member.name;
             }
 
             return `${member.givenName} ${givenNameCount[member.givenName] > 1 ? member.surname : ''}`;
-        });
+        })
+        .map(name => name.trim());
+;
 
         return displayNames
+            .map(name => name.startsWith("Brian") ? `🎉🎈✨${name}✨🎈🎉` : name)
             .map(name => ({sort: Math.random(), value: name}))
             .sort((a, b) => a.sort - b.sort)
             .map(a => a.value);
