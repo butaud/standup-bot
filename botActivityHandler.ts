@@ -85,8 +85,32 @@ class BotActivityHandler extends TeamsActivityHandler {
         `Sorry ${mention.text}, ${recentRequester} beat you to it.`
       );
     } else {
-      const members = await TeamsInfo.getMembers(context);
-      const memberNamesInOrder = this.orderMemberNames(members);
+      const members = (await TeamsInfo.getPagedMembers(context)).members;
+      let memberNamesInOrder: string[] = [];
+
+      if (
+        context.activity.conversation.tenantId &&
+        context.activity.channelData?.meeting?.id
+      ) {
+        const membersMeetingPresence = await this.getMeetingPresence(
+          context,
+          context.activity.conversation.tenantId,
+          context.activity.channelData.meeting.id,
+          members.map((member) => member.id)
+        );
+        const presentMembers = members.filter(
+          (member) => membersMeetingPresence[member.id]
+        );
+        const absentMembers = members.filter(
+          (member) => !membersMeetingPresence[member.id]
+        );
+        memberNamesInOrder = [
+          ...this.orderMemberNames(presentMembers).map((name) => `**${name}**`),
+          ...this.orderMemberNames(absentMembers),
+        ];
+      } else {
+        memberNamesInOrder = this.orderMemberNames(members);
+      }
 
       replyActivity = MessageFactory.text(
         `Hi ${
@@ -100,6 +124,31 @@ class BotActivityHandler extends TeamsActivityHandler {
     await context.sendActivity(replyActivity);
   }
   /* Conversation Bot */
+
+  async getMeetingPresence(
+    context: TurnContext,
+    tenantId: string,
+    meetingId: string,
+    memberIds: string[]
+  ): Promise<Record<string, boolean>> {
+    return await memberIds.reduce(async (prev, memberId) => {
+      const prevDict = await prev;
+      try {
+        prevDict[memberId] =
+          (
+            await TeamsInfo.getMeetingParticipant(
+              context,
+              meetingId,
+              memberId,
+              tenantId
+            )
+          ).meeting?.inMeeting ?? false;
+      } catch (e) {
+        console.error(e);
+      }
+      return prevDict;
+    }, Promise.resolve({} as Record<string, boolean>));
+  }
 
   orderMemberNames(members: TeamsChannelAccount[]) {
     const givenNameCount: Record<string, number> = {};
