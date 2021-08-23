@@ -86,6 +86,8 @@ class BotActivityHandler extends TeamsActivityHandler {
       );
     } else {
       const members = (await TeamsInfo.getPagedMembers(context)).members;
+      const membersInOrder = this.orderMembers(members);
+
       let memberNamesInOrder: string[] = [];
 
       if (
@@ -96,20 +98,23 @@ class BotActivityHandler extends TeamsActivityHandler {
           context,
           context.activity.conversation.tenantId,
           context.activity.channelData.meeting.id,
-          members.map((member) => member.id)
+          membersInOrder.map((member) => member.id)
         );
-        const presentMembers = members.filter(
+        const presentMembers = membersInOrder.filter(
           (member) => membersMeetingPresence[member.id]
         );
-        const absentMembers = members.filter(
+        const absentMembers = membersInOrder.filter(
           (member) => !membersMeetingPresence[member.id]
         );
+
         memberNamesInOrder = [
-          ...this.orderMemberNames(presentMembers).map((name) => `**${name}**`),
-          ...this.orderMemberNames(absentMembers),
+          ...this.formatMemberNames(presentMembers).map(
+            (name) => `**${name}**`
+          ),
+          ...this.formatMemberNames(absentMembers),
         ];
       } else {
-        memberNamesInOrder = this.orderMemberNames(members);
+        memberNamesInOrder = this.formatMemberNames(membersInOrder);
       }
 
       replyActivity = MessageFactory.text(
@@ -150,7 +155,7 @@ class BotActivityHandler extends TeamsActivityHandler {
     }, Promise.resolve({} as Record<string, boolean>));
   }
 
-  orderMemberNames(members: TeamsChannelAccount[]) {
+  formatMemberNames(members: TeamsChannelAccount[]) {
     const givenNameCount: Record<string, number> = {};
     members.forEach((member) => {
       if (member.givenName) {
@@ -173,8 +178,12 @@ class BotActivityHandler extends TeamsActivityHandler {
         }`;
       })
       .map((name) => name.trim());
-    return displayNames
-      .map((name) => ({ sort: Math.random(), value: name }))
+    return displayNames;
+  }
+
+  orderMembers(members: TeamsChannelAccount[]) {
+    return members
+      .map((member) => ({ sort: Math.random(), value: member }))
       .sort((a, b) => a.sort - b.sort)
       .map((a) => a.value);
   }
