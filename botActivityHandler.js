@@ -106,7 +106,6 @@ class BotActivityHandler extends TeamsActivityHandler {
 ;
 
         return displayNames
-            .map(name => name.startsWith("Brian") ? `🎉🎈✨${name}✨🎈🎉` : name)
             .map(name => ({sort: Math.random(), value: name}))
             .sort((a, b) => a.sort - b.sort)
             .map(a => a.value);
