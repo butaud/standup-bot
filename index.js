@@ -12,7 +12,7 @@ const express = require('express');
 const { BotFrameworkAdapter } = require('botbuilder');
 
 // Import bot definitions
-const { BotActivityHandler } = require('./botActivityHandler');
+const { BotActivityHandler } = require('./dist/botActivityHandler');
 
 // Read botFilePath and botFileSecret from .env file.
 const ENV_FILE = path.join(__dirname, '.env');
