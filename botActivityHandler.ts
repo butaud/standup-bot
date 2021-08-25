@@ -121,9 +121,11 @@ class BotActivityHandler extends TeamsActivityHandler {
       }
 
       replyActivity = MessageFactory.text(
-        `Hi ${
+        `${
           mention.text
-        }, here is a random order:\n\n${memberNamesInOrder.join("\n\n")}`
+        }, here is the random order you requested:\n\n${memberNamesInOrder.join(
+          "\n\n"
+        )}`
       );
     }
 
