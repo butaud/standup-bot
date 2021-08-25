@@ -85,6 +85,9 @@ class BotActivityHandler extends TeamsActivityHandler {
         `Sorry ${mention.text}, ${recentRequester} beat you to it.`
       );
     } else {
+      await context.sendActivity(
+        MessageFactory.text("Sure, it will take just a minute.")
+      );
       const members = (await TeamsInfo.getPagedMembers(context)).members;
       const membersInOrder = this.orderMembers(members);
 
