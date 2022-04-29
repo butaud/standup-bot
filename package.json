@@ -11,7 +11,7 @@
     "scripts": {
         "start": "npm-run-all --parallel ngrok server",
         "watch": "nodemon ./index.js",
-        "ngrok": "F:\\Applications\\ngrok start standup_bot --log stdout",
+        "ngrok": "ngrok start standup_bot --log stdout",
         "server": "tsc && node ./index.js"
     },
     "dependencies": {
