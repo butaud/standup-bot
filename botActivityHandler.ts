@@ -36,26 +36,18 @@ class BotActivityHandler extends TeamsActivityHandler {
     this.onMessage(async (context, next) => {
       TurnContext.removeRecipientMention(context.activity);
       switch (context.activity.text.trim().toLowerCase()) {
-        case "choose an order":
-          await this.orderActivityAsync(context);
+        case "help":
+          const helpMessage1 = MessageFactory.text(
+            "I can choose a random order for all the people in your meeting, making sure that anyone actively on the call is sorted before anyone not on the call. You don't need to use any special command: I'll choose an order if you say anything but \"help\"."
+          );
+          await context.sendActivity(helpMessage1);
+          const helpMessage2 = MessageFactory.text(
+            "If multiple people are joining from a conference room or someone is dialing in from a phone, you can tell me about them using \"override:alias\". You can add as many of these as you want, separated by spaces. For example: \"override:bob override:mary\""
+          );
+          await context.sendActivity(helpMessage2);
           break;
         default:
-          // By default for unknown activity sent by user show
-          // a card with the available actions.
-          const value = { count: 0 };
-          const card = CardFactory.heroCard(
-            "I can choose an order for your standup meeting.",
-            undefined,
-            [
-              {
-                type: ActionTypes.MessageBack,
-                title: "Choose an order",
-                value: value,
-                text: "Choose an order",
-              },
-            ]
-          );
-          await context.sendActivity({ attachments: [card] });
+          await this.orderActivityAsync(context);
           break;
       }
       await next();
@@ -65,11 +57,24 @@ class BotActivityHandler extends TeamsActivityHandler {
     this.recentOrderings = {};
   }
 
+  getOverrideEmails(inputText: string): Set<string> {
+    const tokens = inputText.split(" ");
+    return new Set(tokens
+      .filter(token => token.startsWith("override:"))
+      .map(token => token.split(":")[1])
+      // filter out any malformed (nothing past the ":")
+      .filter(alias => alias)
+      .map(alias => `${alias}@microsoft.com`));
+  }
+
   /* Conversation Bot */
   /**
    * Say hello and @ mention the current user.
    */
   async orderActivityAsync(context: TurnContext) {
+    const inputText = context.activity.text.trim();
+    const overrideEmails = this.getOverrideEmails(inputText);
+    
     const TextEncoder = require("html-entities").XmlEntities;
 
     const mention = {
@@ -86,39 +91,38 @@ class BotActivityHandler extends TeamsActivityHandler {
       );
     } else {
       await context.sendActivity(
-        MessageFactory.text("Sure, it will take just a minute.")
+        MessageFactory.text(`${context.activity.from.name}, I'm choosing an order for your meeting. It will take just a minute.`)
       );
       const members = (await TeamsInfo.getPagedMembers(context)).members;
       const membersInOrder = this.orderMembers(members);
 
-      let memberNamesInOrder: string[] = [];
+      const membersMeetingPresence = 
+        (context.activity.conversation.tenantId && context.activity.channelData?.meeting?.id) ? 
+          await this.getMeetingPresence(
+            context,
+            context.activity.conversation.tenantId,
+            context.activity.channelData.meeting.id,
+            membersInOrder.map((member) => member.id)
+          ) : {};
 
-      if (
-        context.activity.conversation.tenantId &&
-        context.activity.channelData?.meeting?.id
-      ) {
-        const membersMeetingPresence = await this.getMeetingPresence(
-          context,
-          context.activity.conversation.tenantId,
-          context.activity.channelData.meeting.id,
-          membersInOrder.map((member) => member.id)
-        );
-        const presentMembers = membersInOrder.filter(
-          (member) => membersMeetingPresence[member.id]
-        );
-        const absentMembers = membersInOrder.filter(
-          (member) => !membersMeetingPresence[member.id]
-        );
+      const presentMembers: TeamsChannelAccount[] = [];
+      const absentMembers: TeamsChannelAccount[] = [];
 
-        memberNamesInOrder = [
-          ...this.formatMemberNames(presentMembers).map(
-            (name) => `**${name}**`
-          ),
-          ...this.formatMemberNames(absentMembers),
-        ];
-      } else {
-        memberNamesInOrder = this.formatMemberNames(membersInOrder);
-      }
+      membersInOrder.forEach(member => {
+        if (membersMeetingPresence[member.id] || 
+            (member.email && overrideEmails.has(member.email))) {
+          presentMembers.push(member);
+        } else {
+          absentMembers.push(member);
+        }
+      });
+
+      const memberNamesInOrder = [
+        ...this.formatMemberNames(presentMembers).map(
+          (name) => `**${name}**`
+        ),
+        ...this.formatMemberNames(absentMembers),
+      ];
 
       replyActivity = MessageFactory.text(
         `${
@@ -175,7 +179,7 @@ class BotActivityHandler extends TeamsActivityHandler {
     const displayNames = members
       .map((member) => {
         if (!member.givenName) {
-          return member.name;
+          return member.name
         }
 
         return `${member.givenName} ${
