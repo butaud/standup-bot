@@ -64,7 +64,7 @@ class BotActivityHandler extends TeamsActivityHandler {
       .map(token => token.split(":")[1])
       // filter out any malformed (nothing past the ":")
       .filter(alias => alias)
-      .map(alias => `${alias}@microsoft.com`));
+      .map(alias => `${alias.toLowerCase()}@microsoft.com`));
   }
 
   /* Conversation Bot */
@@ -108,9 +108,12 @@ class BotActivityHandler extends TeamsActivityHandler {
       const presentMembers: TeamsChannelAccount[] = [];
       const absentMembers: TeamsChannelAccount[] = [];
 
+      overrideEmails.forEach(email => console.log(`override email: ${email}`));
       membersInOrder.forEach(member => {
+        const memberEmail = member.email?.toLowerCase();
+        console.log(`${memberEmail}`);
         if (membersMeetingPresence[member.id] || 
-            (member.email && overrideEmails.has(member.email))) {
+            (memberEmail && overrideEmails.has(memberEmail))) {
           presentMembers.push(member);
         } else {
           absentMembers.push(member);
