@@ -42,7 +42,7 @@ class BotActivityHandler extends TeamsActivityHandler {
           );
           await context.sendActivity(helpMessage1);
           const helpMessage2 = MessageFactory.text(
-            "If multiple people are joining from a conference room or someone is dialing in from a phone, you can tell me about them using \"override:alias\". You can add as many of these as you want, separated by spaces. For example: \"override:bob override:mary\""
+            'If multiple people are joining from a conference room or someone is dialing in from a phone, you can tell me about them using "override:alias". You can add as many of these as you want, separated by spaces. For example: "override:bob override:mary"'
           );
           await context.sendActivity(helpMessage2);
           break;
@@ -59,12 +59,14 @@ class BotActivityHandler extends TeamsActivityHandler {
 
   getOverrideEmails(inputText: string): Set<string> {
     const tokens = inputText.split(" ");
-    return new Set(tokens
-      .filter(token => token.startsWith("override:"))
-      .map(token => token.split(":")[1])
-      // filter out any malformed (nothing past the ":")
-      .filter(alias => alias)
-      .map(alias => `${alias.toLowerCase()}@microsoft.com`));
+    return new Set(
+      tokens
+        .filter((token) => token.startsWith("override:"))
+        .map((token) => token.split(":")[1])
+        // filter out any malformed (nothing past the ":")
+        .filter((alias) => alias)
+        .map((alias) => `${alias.toLowerCase()}@microsoft.com`)
+    );
   }
 
   /* Conversation Bot */
@@ -74,7 +76,7 @@ class BotActivityHandler extends TeamsActivityHandler {
   async orderActivityAsync(context: TurnContext) {
     const inputText = context.activity.text.trim();
     const overrideEmails = this.getOverrideEmails(inputText);
-    
+
     const TextEncoder = require("html-entities").XmlEntities;
 
     const mention = {
@@ -91,29 +93,37 @@ class BotActivityHandler extends TeamsActivityHandler {
       );
     } else {
       await context.sendActivity(
-        MessageFactory.text(`${context.activity.from.name}, I'm choosing an order for your meeting. It will take just a minute.`)
+        MessageFactory.text(
+          `${context.activity.from.name}, I'm choosing an order for your meeting. It will take just a minute.`
+        )
       );
       const members = (await TeamsInfo.getPagedMembers(context)).members;
       const membersInOrder = this.orderMembers(members);
 
-      const membersMeetingPresence = 
-        (context.activity.conversation.tenantId && context.activity.channelData?.meeting?.id) ? 
-          await this.getMeetingPresence(
-            context,
-            context.activity.conversation.tenantId,
-            context.activity.channelData.meeting.id,
-            membersInOrder.map((member) => member.id)
-          ) : {};
+      const membersMeetingPresence =
+        context.activity.conversation.tenantId &&
+        context.activity.channelData?.meeting?.id
+          ? await this.getMeetingPresence(
+              context,
+              context.activity.conversation.tenantId,
+              context.activity.channelData.meeting.id,
+              membersInOrder.map((member) => member.id)
+            )
+          : {};
 
       const presentMembers: TeamsChannelAccount[] = [];
       const absentMembers: TeamsChannelAccount[] = [];
 
-      overrideEmails.forEach(email => console.log(`override email: ${email}`));
-      membersInOrder.forEach(member => {
+      overrideEmails.forEach((email) =>
+        console.log(`override email: ${email}`)
+      );
+      membersInOrder.forEach((member) => {
         const memberEmail = member.email?.toLowerCase();
         console.log(`${memberEmail}`);
-        if (membersMeetingPresence[member.id] || 
-            (memberEmail && overrideEmails.has(memberEmail))) {
+        if (
+          membersMeetingPresence[member.id] ||
+          (memberEmail && overrideEmails.has(memberEmail))
+        ) {
           presentMembers.push(member);
         } else {
           absentMembers.push(member);
@@ -121,9 +131,7 @@ class BotActivityHandler extends TeamsActivityHandler {
       });
 
       const memberNamesInOrder = [
-        ...this.formatMemberNames(presentMembers).map(
-          (name) => `**${name}**`
-        ),
+        ...this.formatMemberNames(presentMembers).map((name) => `**${name}**`),
         ...this.formatMemberNames(absentMembers),
       ];
 
@@ -182,7 +190,7 @@ class BotActivityHandler extends TeamsActivityHandler {
     const displayNames = members
       .map((member) => {
         if (!member.givenName) {
-          return member.name
+          return member.name;
         }
 
         return `${member.givenName} ${
